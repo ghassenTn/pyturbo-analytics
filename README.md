@@ -87,6 +87,54 @@ PyTurbo Analytics builds upon Pandas' intuitive API while offering significant p
 
 *Benchmarks performed on a dataset with 50M rows, using a system with 32GB RAM and NVIDIA RTX 3080*
 
+### Example: Customer Analytics
+
+Here's a real-world example comparing Pandas and PyTurbo Analytics for customer transaction analysis:
+
+```python
+import pandas as pd
+import pyturbo as pt
+
+# Pandas version
+def analyze_with_pandas(customers_df, transactions_df):
+    # Merge customers and transactions
+    merged = customers_df.merge(
+        transactions_df,
+        on='customer_id',
+        how='left'
+    )
+    
+    # Complex analysis
+    result = (merged
+             .groupby(['region', 'category'])
+             .agg({
+                 'amount': ['count', 'sum', 'mean'],
+                 'age': 'mean'
+             })
+             .sort_values(('amount', 'sum'), ascending=False))
+    return result
+
+# PyTurbo Analytics version
+def analyze_with_pyturbo(customers_df, transactions_df):
+    # Convert to TurboFrames
+    tf_customers = pt.TurboFrame(customers_df)
+    tf_transactions = pt.TurboFrame(transactions_df)
+    
+    # Same analysis, but with GPU acceleration
+    with pt.use_gpu():
+        result = (tf_customers.merge(tf_transactions, on='customer_id', how='left')
+                 .groupby(['region', 'category'])
+                 .agg({
+                     'amount': ['count', 'sum', 'mean'],
+                     'age': 'mean'
+                 })
+                 .sort_values(('amount', 'sum'), ascending=False)
+                 .compute())
+    return result
+```
+
+For a complete performance comparison example with synthetic data, check out [examples/performance_comparison.py](examples/performance_comparison.py).
+
 ### When to Use PyTurbo Analytics
 
 - Large datasets that don't fit in memory
