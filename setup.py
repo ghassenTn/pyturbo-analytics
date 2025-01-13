@@ -9,7 +9,8 @@ except FileNotFoundError:
     long_description = "PyTurbo - High-performance Python library for blazing-fast data analysis"
 
 setup(
-    name="pyturbo",
+    name="pyturbo-analytics",
+    version="0.1.2",  # Updated version number
     use_scm_version=True,
     packages=find_packages(),
     setup_requires=["setuptools_scm"],
@@ -66,25 +67,23 @@ setup(
         "Source Code": "https://github.com/pyturbo/pyturbo",
     },
     classifiers=[
-        "Development Status :: 4 - Beta",  # Updated to Beta status
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
-        "Topic :: Scientific/Engineering :: Data Analysis",
+        "Topic :: Scientific/Engineering",
         "Topic :: Software Development :: Libraries :: Python Modules",
-        "Topic :: Software Development :: Libraries :: Application Frameworks",
     ],
     keywords="data analysis, performance optimization, GPU acceleration, parallel processing, "
              "pandas, numpy, data science, high performance computing, machine learning",
-    python_requires=">=3.8",
+    python_requires=">=3.9,<3.14",
     include_package_data=True,
     package_data={
         "pyturbo": [
