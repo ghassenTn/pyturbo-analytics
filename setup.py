@@ -92,5 +92,5 @@ setup(
             "config/*.yaml",
         ],
     },
-    zip_safe=False,  # Ensure the package can be properly installed and imported
+    zip_safe=False,
 )
