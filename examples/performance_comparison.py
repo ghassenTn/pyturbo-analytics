@@ -95,10 +95,11 @@ def benchmark_pyturbo(customers: pd.DataFrame, transactions: pd.DataFrame) -> Di
     ).compute()
     timings['merge'] = time.time() - start
     
-    # Benchmark Complex Query with GPU acceleration
-    start = time.time()
-    with pt.use_gpu():
-        result = (tf_customers.merge(tf_transactions, on='customer_id', how='left')
+    # Benchmark Complex Query on CPU
+    # Uses tf_customers and tf_transactions initialized at the start of the function.
+    # These are expected to be CPU-backed as no use_gpu() context was active for them.
+    start_cpu = time.time()
+    result_cpu = (tf_customers.merge(tf_transactions, on='customer_id', how='left')
                  .groupby(['region', 'category'])
                  .agg({
                      'amount': ['count', 'sum', 'mean'],
@@ -106,7 +107,26 @@ def benchmark_pyturbo(customers: pd.DataFrame, transactions: pd.DataFrame) -> Di
                  })
                  .sort_values(('amount', 'sum'), ascending=False)
                  .compute())
-    timings['complex_query'] = time.time() - start
+    timings['complex_query_cpu'] = time.time() - start_cpu
+
+    # Benchmark Complex Query with GPU acceleration
+    # Re-initialize TurboFrames from pandas DataFrames inside use_gpu context
+    # to include potential data transfer to GPU in this benchmark.
+    start_gpu = time.time()
+    with pt.use_gpu():
+        # TurboFrame.__init__ should convert to cuDF automatically here
+        gpu_tf_customers = pt.TurboFrame(customers) 
+        gpu_tf_transactions = pt.TurboFrame(transactions)
+        
+        result_gpu = (gpu_tf_customers.merge(gpu_tf_transactions, on='customer_id', how='left')
+                     .groupby(['region', 'category'])
+                     .agg({
+                         'amount': ['count', 'sum', 'mean'],
+                         'age': 'mean'
+                     })
+                     .sort_values(('amount', 'sum'), ascending=False)
+                     .compute())
+    timings['complex_query_gpu'] = time.time() - start_gpu
     
     return timings
 
@@ -127,14 +147,43 @@ def main():
     # Print results
     print("\nPerformance Comparison (seconds):")
     print("-" * 60)
-    print(f"{'Operation':<20} {'Pandas':>10} {'PyTurbo':>10} {'Speedup':>10}")
+    # Adjusted header to be more generic as PyTurbo will have CPU/GPU variants
+    print(f"{'Operation':<30} {'Pandas':>10} {'PyTurbo':>10} {'Speedup':>10}")
     print("-" * 60)
     
-    for operation in pandas_timings:
-        pandas_time = pandas_timings[operation]
-        pyturbo_time = pyturbo_timings[operation]
-        speedup = pandas_time / pyturbo_time
-        print(f"{operation:<20} {pandas_time:>10.3f} {pyturbo_time:>10.3f} {speedup:>10.1f}x")
+    # Define the order of operations for printing and handle special complex query case
+    operations_to_print = ['groupby', 'merge', 'complex_query']
+
+    for operation_key in operations_to_print:
+        pandas_time = pandas_timings.get(operation_key)
+        
+        if operation_key == 'complex_query':
+            # PyTurbo CPU
+            pyturbo_cpu_time = pyturbo_timings.get('complex_query_cpu')
+            if pandas_time is not None and pyturbo_cpu_time is not None:
+                speedup_cpu = pandas_time / pyturbo_cpu_time
+                print(f"{'Complex Query (CPU)':<30} {pandas_time:>10.3f} {pyturbo_cpu_time:>10.3f} {speedup_cpu:>10.1f}x")
+            else:
+                print(f"{'Complex Query (CPU)':<30} {pandas_time:>10.3f} {'N/A':>10} {'N/A':>10}")
+
+            # PyTurbo GPU
+            pyturbo_gpu_time = pyturbo_timings.get('complex_query_gpu')
+            if pandas_time is not None and pyturbo_gpu_time is not None:
+                speedup_gpu = pandas_time / pyturbo_gpu_time
+                print(f"{'Complex Query (GPU)':<30} {pandas_time:>10.3f} {pyturbo_gpu_time:>10.3f} {speedup_gpu:>10.1f}x")
+            else:
+                # Pandas time might be printed again if only GPU fails, but that's okay for this structure
+                print(f"{'Complex Query (GPU)':<30} {pandas_time if pandas_time is not None else 'N/A':>10} {'N/A':>10} {'N/A':>10}")
+        else:
+            # For simple operations like groupby and merge
+            pyturbo_time = pyturbo_timings.get(operation_key)
+            if pandas_time is not None and pyturbo_time is not None:
+                speedup = pandas_time / pyturbo_time
+                print(f"{operation_key:<30} {pandas_time:>10.3f} {pyturbo_time:>10.3f} {speedup:>10.1f}x")
+            else:
+                # Handle cases where a timing might be missing
+                print(f"{operation_key:<30} {pandas_time if pandas_time is not None else 'N/A':>10} {pyturbo_time if pyturbo_time is not None else 'N/A':>10} {'N/A':>10}")
+    print("-" * 60)
 
 if __name__ == "__main__":
     main()
