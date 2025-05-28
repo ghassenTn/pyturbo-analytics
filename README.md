@@ -1,4 +1,5 @@
-# PyTurbo Analytics: High-Performance Data Analysis Library 
+# PyTurbo Analytics: High-Performance Data Analysis Library ![pyturbo_architecture](https://github.com/user-attachments/assets/fbdb2722-c889-4895-a31b-a373ffaf0e67)
+
 
 PyTurbo Analytics is a high-performance Python library designed to dramatically accelerate data analysis tasks by leveraging multiple computing paradigms including multithreading, multiprocessing, GPU acceleration, and compiled code optimization.
 
